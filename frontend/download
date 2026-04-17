@@ -1,0 +1,12 @@
+VITE_API_URL=http://localhost/frobacksql/backend/api
+VITE_API_URL_CS=http://localhost:5156/api
+
+# Hibrid mod: ami nem stabil C#-on, marad PHP-ban
+VITE_USE_CS_PRODUCTS=false
+VITE_USE_CS_CATEGORIES=false
+VITE_USE_CS_ADMIN_USERS=false
+
+VITE_ADMIN_ALLOWLIST=
+VITE_EMAILJS_SERVICE_ID=service_u97w4rk
+VITE_EMAILJS_TEMPLATE_ID=template_mcjlomk
+VITE_EMAILJS_PUBLIC_KEY=NJmnYNngkcWACR6G4
