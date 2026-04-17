@@ -1,0 +1,514 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Kisallat Webshop API",
+    "description": "Kisallat Webshop backend API dokumentacio. PHP + MySQL alapu REST API.",
+    "version": "1.0.0",
+    "contact": { "email": "info@kisallatwebshop.hu" }
+  },
+  "servers": [
+    { "url": "http://localhost/frobacksql/backend", "description": "Lokalis fejlesztoi szerver (XAMPP)" }
+  ],
+  "tags": [
+    { "name": "Auth", "description": "Autentikacio - regisztracio, bejelentkezes" },
+    { "name": "Products", "description": "Termekek lekerdezese" },
+    { "name": "Categories", "description": "Kategoriak es alkategoriak" },
+    { "name": "Orders", "description": "Rendelesek kezelese" },
+    { "name": "Reviews", "description": "Velemenyek es kozossegi fal" },
+    { "name": "Coupons", "description": "Kuponok kezelese" },
+    { "name": "Password Reset", "description": "Jelszo visszaallitas" },
+    { "name": "Admin - Products", "description": "Admin termekkezeles" },
+    { "name": "Admin - Orders", "description": "Admin rendeleskezeles" },
+    { "name": "Admin - Users", "description": "Admin felhasznalo lista" },
+    { "name": "Upload", "description": "Kep feltoltes" }
+  ],
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": { "type": "http", "scheme": "bearer", "description": "JWT token" },
+      "AdminSecret": { "type": "apiKey", "in": "header", "name": "X-Admin-Secret", "description": "Admin jelszo" }
+    },
+    "schemas": {
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "felhasznalonev": { "type": "string" },
+          "email": { "type": "string" },
+          "keresztnev": { "type": "string" },
+          "vezeteknev": { "type": "string" },
+          "telefon": { "type": "string" },
+          "admin": { "type": "integer" }
+        }
+      },
+      "Product": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "nev": { "type": "string" },
+          "slug": { "type": "string" },
+          "leiras": { "type": "string" },
+          "rovid_leiras": { "type": "string" },
+          "ar": { "type": "integer" },
+          "akcios_ar": { "type": "integer", "nullable": true },
+          "keszlet": { "type": "integer" },
+          "fo_kep": { "type": "string" },
+          "alkategoria_id": { "type": "integer" },
+          "aktiv": { "type": "integer" }
+        }
+      },
+      "Category": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "slug": { "type": "string" },
+          "nev": { "type": "string" },
+          "kep": { "type": "string" },
+          "alkategoriak": { "type": "array", "items": { "$ref": "#/components/schemas/Subcategory" } }
+        }
+      },
+      "Subcategory": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "slug": { "type": "string" },
+          "nev": { "type": "string" },
+          "kategoria_id": { "type": "integer" }
+        }
+      },
+      "Order": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "rendeles_szam": { "type": "string" },
+          "statusz": { "type": "string", "enum": ["uj", "feldolgozas", "fizetve", "kesz", "storno"] },
+          "osszeg": { "type": "integer" },
+          "szallitasi_mod": { "type": "string" },
+          "fizetesi_mod": { "type": "string" },
+          "letrehozva": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Review": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "termek_id": { "type": "integer" },
+          "ertekeles": { "type": "integer", "minimum": 1, "maximum": 5 },
+          "cim": { "type": "string" },
+          "velemeny": { "type": "string" },
+          "datum": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Coupon": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "kod": { "type": "string" },
+          "tipus": { "type": "string", "enum": ["szazalek", "fix"] },
+          "ertek": { "type": "number" },
+          "min_osszeg": { "type": "number" },
+          "aktiv": { "type": "integer" }
+        }
+      },
+      "WallPost": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "felhasznalo_id": { "type": "integer" },
+          "felhasznalonev": { "type": "string" },
+          "szoveg": { "type": "string" },
+          "letrehozva": { "type": "string", "format": "date-time" }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/api/auth.php/register": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Regisztracio",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["felhasznalonev", "email", "jelszo"],
+                "properties": {
+                  "felhasznalonev": { "type": "string" },
+                  "email": { "type": "string", "format": "email" },
+                  "jelszo": { "type": "string", "minLength": 6 },
+                  "keresztnev": { "type": "string" },
+                  "vezeteknev": { "type": "string" },
+                  "telefon": { "type": "string" },
+                  "iranyitoszam": { "type": "string" },
+                  "varos": { "type": "string" },
+                  "cim": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Sikeres regisztracio", "content": { "application/json": { "schema": { "type": "object", "properties": { "token": { "type": "string" }, "user": { "$ref": "#/components/schemas/User" } } } } } },
+          "400": { "description": "Hianyzo mezok" },
+          "409": { "description": "Felhasznalonev vagy email mar foglalt" }
+        }
+      }
+    },
+    "/api/auth.php/login": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Bejelentkezes",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["identifier", "password"],
+                "properties": {
+                  "identifier": { "type": "string", "description": "Felhasznalonev vagy email" },
+                  "password": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Sikeres bejelentkezes", "content": { "application/json": { "schema": { "type": "object", "properties": { "token": { "type": "string" }, "user": { "$ref": "#/components/schemas/User" } } } } } },
+          "401": { "description": "Hibas bejelentkezesi adatok" }
+        }
+      }
+    },
+    "/api/auth.php/me": {
+      "get": {
+        "tags": ["Auth"],
+        "summary": "Aktualis felhasznalo adatai",
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": { "description": "Felhasznalo adatok", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/User" } } } },
+          "401": { "description": "Nincs bejelentkezve" }
+        }
+      }
+    },
+    "/api/auth.php/check-auth": {
+      "get": {
+        "tags": ["Auth"],
+        "summary": "Autentikacio ellenorzese",
+        "security": [{ "BearerAuth": [] }],
+        "responses": { "200": { "description": "Token ervenyes" }, "401": { "description": "Ervenytelen token" } }
+      }
+    },
+    "/api/products.php": {
+      "get": {
+        "tags": ["Products"],
+        "summary": "Osszes termek (lapozott)",
+        "parameters": [
+          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 20 } },
+          { "name": "id", "in": "query", "schema": { "type": "integer" }, "description": "Egy termek lekerdezese ID alapjan" }
+        ],
+        "responses": { "200": { "description": "Termek lista", "content": { "application/json": { "schema": { "type": "object", "properties": { "products": { "type": "array", "items": { "$ref": "#/components/schemas/Product" } }, "total": { "type": "integer" } } } } } } }
+      }
+    },
+    "/api/products.php/search": {
+      "get": {
+        "tags": ["Products"],
+        "summary": "Termek kereses",
+        "parameters": [{ "name": "q", "in": "query", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Keresesi eredmenyek", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Product" } } } } } }
+      }
+    },
+    "/api/products.php/category": {
+      "get": {
+        "tags": ["Products"],
+        "summary": "Termekek kategoria szerint",
+        "parameters": [
+          { "name": "kategoria", "in": "query", "required": true, "schema": { "type": "string" }, "description": "Kategoria slug (pl. kutya)" },
+          { "name": "alkategoria", "in": "query", "schema": { "type": "string" }, "description": "Alkategoria slug (pl. tap)" }
+        ],
+        "responses": { "200": { "description": "Termek lista", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Product" } } } } } }
+      }
+    },
+    "/api/categories.php": {
+      "get": {
+        "tags": ["Categories"],
+        "summary": "Osszes kategoria alkategoriakkal",
+        "responses": { "200": { "description": "Kategoria lista", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Category" } } } } } }
+      }
+    },
+    "/api/categories.php/subcategories": {
+      "get": {
+        "tags": ["Categories"],
+        "summary": "Alkategoriak lekerdezese",
+        "parameters": [{ "name": "kategoria_id", "in": "query", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Alkategoria lista", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Subcategory" } } } } } }
+      }
+    },
+    "/api/orders.php/create": {
+      "post": {
+        "tags": ["Orders"],
+        "summary": "Uj rendeles leadasa",
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["tetelek", "szallitasi_nev", "szallitasi_cim"],
+                "properties": {
+                  "tetelek": { "type": "array", "items": { "type": "object", "properties": { "termek_id": { "type": "integer" }, "mennyiseg": { "type": "integer" }, "ar": { "type": "integer" } } } },
+                  "szallitasi_nev": { "type": "string" },
+                  "szallitasi_cim": { "type": "string" },
+                  "szallitasi_varos": { "type": "string" },
+                  "szallitasi_irsz": { "type": "string" },
+                  "szallitasi_mod": { "type": "string" },
+                  "fizetesi_mod": { "type": "string" },
+                  "megjegyzes": { "type": "string" },
+                  "kupon_kod": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Rendeles sikeresen leadva" }, "401": { "description": "Bejelentkezes szukseges" } }
+      }
+    },
+    "/api/orders.php/my-orders": {
+      "get": {
+        "tags": ["Orders"],
+        "summary": "Sajat rendelesek",
+        "security": [{ "BearerAuth": [] }],
+        "responses": { "200": { "description": "Rendeles lista", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Order" } } } } } }
+      }
+    },
+    "/api/reviews.php/all": {
+      "get": {
+        "tags": ["Reviews"],
+        "summary": "Osszes velemeny",
+        "responses": { "200": { "description": "Velemeny lista", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Review" } } } } } }
+      }
+    },
+    "/api/reviews.php/product/{termek_id}": {
+      "get": {
+        "tags": ["Reviews"],
+        "summary": "Termek velemenyei",
+        "parameters": [{ "name": "termek_id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Velemenyek" } }
+      }
+    },
+    "/api/reviews.php": {
+      "post": {
+        "tags": ["Reviews"],
+        "summary": "Uj velemeny irasa",
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["termek_id", "ertekeles", "cim", "velemeny"],
+                "properties": {
+                  "termek_id": { "type": "integer" },
+                  "ertekeles": { "type": "integer", "minimum": 1, "maximum": 5 },
+                  "cim": { "type": "string" },
+                  "velemeny": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Velemeny sikeresen hozzaadva" } }
+      }
+    },
+    "/api/reviews.php/wall": {
+      "get": {
+        "tags": ["Reviews"],
+        "summary": "Fal bejegyzesek lekerdezese",
+        "security": [{ "BearerAuth": [] }],
+        "responses": { "200": { "description": "Fal bejegyzesek", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/WallPost" } } } } } }
+      },
+      "post": {
+        "tags": ["Reviews"],
+        "summary": "Uj fal bejegyzes",
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "content": { "application/json": { "schema": { "type": "object", "required": ["szoveg"], "properties": { "szoveg": { "type": "string", "maxLength": 1000 } } } } }
+        },
+        "responses": { "200": { "description": "Bejegyzes kozzeteve" } }
+      }
+    },
+    "/api/reviews.php/wall/{id}": {
+      "delete": {
+        "tags": ["Reviews"],
+        "summary": "Fal bejegyzes torlese",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Torolve" } }
+      }
+    },
+    "/api/coupons.php/loyalty": {
+      "get": {
+        "tags": ["Coupons"],
+        "summary": "Husegkupon lekerdezese",
+        "responses": { "200": { "description": "Husegkupon adatai", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Coupon" } } } } }
+      }
+    },
+    "/api/coupons.php/validate/{kod}": {
+      "get": {
+        "tags": ["Coupons"],
+        "summary": "Kupon validalasa",
+        "parameters": [{ "name": "kod", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Kupon ervenyes" }, "404": { "description": "Ervenytelen kuponkod" } }
+      }
+    },
+    "/api/coupons.php/apply": {
+      "post": {
+        "tags": ["Coupons"],
+        "summary": "Kupon alkalmazasa",
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "content": { "application/json": { "schema": { "type": "object", "required": ["kupon_kod", "osszeg"], "properties": { "kupon_kod": { "type": "string" }, "osszeg": { "type": "number" } } } } }
+        },
+        "responses": { "200": { "description": "Kedvezmeny kiszamitva" } }
+      }
+    },
+    "/api/coupons.php/my": {
+      "get": {
+        "tags": ["Coupons"],
+        "summary": "Sajat kuponjaim",
+        "security": [{ "BearerAuth": [] }],
+        "responses": { "200": { "description": "Kupon lista", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Coupon" } } } } } }
+      }
+    },
+    "/api/coupons.php": {
+      "get": {
+        "tags": ["Coupons"],
+        "summary": "Osszes kupon (admin)",
+        "security": [{ "BearerAuth": [] }, { "AdminSecret": [] }],
+        "responses": { "200": { "description": "Osszes kupon" } }
+      },
+      "post": {
+        "tags": ["Coupons"],
+        "summary": "Uj kupon letrehozasa (admin)",
+        "security": [{ "BearerAuth": [] }, { "AdminSecret": [] }],
+        "requestBody": {
+          "content": { "application/json": { "schema": { "type": "object", "required": ["kod", "ertek"], "properties": { "kod": { "type": "string" }, "tipus": { "type": "string", "enum": ["szazalek", "fix"] }, "ertek": { "type": "number" }, "min_osszeg": { "type": "number" }, "felhasznalasi_limit": { "type": "integer" }, "ervenyes_veg": { "type": "string", "format": "date-time" } } } } }
+        },
+        "responses": { "200": { "description": "Kupon letrehozva" } }
+      }
+    },
+    "/api/coupons.php/{id}": {
+      "put": {
+        "tags": ["Coupons"],
+        "summary": "Kupon frissitese (admin)",
+        "security": [{ "BearerAuth": [] }, { "AdminSecret": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Kupon frissitve" } }
+      },
+      "delete": {
+        "tags": ["Coupons"],
+        "summary": "Kupon torlese (admin)",
+        "security": [{ "BearerAuth": [] }, { "AdminSecret": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Kupon torolve" } }
+      }
+    },
+    "/api/password-reset.php/request": {
+      "post": {
+        "tags": ["Password Reset"],
+        "summary": "Jelszo visszaallitas kerese",
+        "requestBody": {
+          "content": { "application/json": { "schema": { "type": "object", "required": ["email"], "properties": { "email": { "type": "string", "format": "email" } } } } }
+        },
+        "responses": { "200": { "description": "Kod generalva es visszaadva a frontendnek EmailJS kuldeshes" } }
+      }
+    },
+    "/api/password-reset.php/verify": {
+      "post": {
+        "tags": ["Password Reset"],
+        "summary": "Kod ellenorzese",
+        "requestBody": {
+          "content": { "application/json": { "schema": { "type": "object", "required": ["email", "kod"], "properties": { "email": { "type": "string" }, "kod": { "type": "string" } } } } }
+        },
+        "responses": { "200": { "description": "Kod ervenyes" }, "400": { "description": "Hibas kod" } }
+      }
+    },
+    "/api/password-reset.php/reset": {
+      "post": {
+        "tags": ["Password Reset"],
+        "summary": "Jelszo megvaltoztatasa",
+        "requestBody": {
+          "content": { "application/json": { "schema": { "type": "object", "required": ["email", "kod", "uj_jelszo"], "properties": { "email": { "type": "string" }, "kod": { "type": "string" }, "uj_jelszo": { "type": "string", "minLength": 6 } } } } }
+        },
+        "responses": { "200": { "description": "Jelszo megvaltoztatva" } }
+      }
+    },
+    "/api/admin/products.php": {
+      "get": {
+        "tags": ["Admin - Products"],
+        "summary": "Osszes termek (admin)",
+        "security": [{ "BearerAuth": [] }, { "AdminSecret": [] }],
+        "responses": { "200": { "description": "Termek lista" } }
+      },
+      "post": {
+        "tags": ["Admin - Products"],
+        "summary": "Termek letrehozasa / frissitese / torlese",
+        "description": "POST _method=PUT frissiteshez, _method=DELETE torleshez",
+        "security": [{ "BearerAuth": [] }, { "AdminSecret": [] }],
+        "requestBody": {
+          "content": { "application/json": { "schema": { "type": "object", "properties": { "nev": { "type": "string" }, "ar": { "type": "integer" }, "alkategoria_id": { "type": "integer" }, "fo_kep": { "type": "string" }, "_method": { "type": "string", "enum": ["PUT", "DELETE"] }, "id": { "type": "integer" } } } } }
+        },
+        "responses": { "200": { "description": "Sikeres" } }
+      }
+    },
+    "/api/admin/orders.php": {
+      "get": {
+        "tags": ["Admin - Orders"],
+        "summary": "Osszes rendeles (admin)",
+        "security": [{ "BearerAuth": [] }, { "AdminSecret": [] }],
+        "responses": { "200": { "description": "Rendeles lista" } }
+      }
+    },
+    "/api/admin/orders.php/{id}": {
+      "put": {
+        "tags": ["Admin - Orders"],
+        "summary": "Rendeles statusz frissitese",
+        "security": [{ "BearerAuth": [] }, { "AdminSecret": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "requestBody": {
+          "content": { "application/json": { "schema": { "type": "object", "properties": { "statusz": { "type": "string", "enum": ["uj", "feldolgozas", "fizetve", "kesz", "storno"] } } } } }
+        },
+        "responses": { "200": { "description": "Statusz frissitve" } }
+      },
+      "delete": {
+        "tags": ["Admin - Orders"],
+        "summary": "Rendeles torlese",
+        "security": [{ "BearerAuth": [] }, { "AdminSecret": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Rendeles torolve" } }
+      }
+    },
+    "/api/admin/users.php": {
+      "get": {
+        "tags": ["Admin - Users"],
+        "summary": "Osszes felhasznalo listazasa",
+        "security": [{ "BearerAuth": [] }, { "AdminSecret": [] }],
+        "responses": { "200": { "description": "Felhasznalo lista", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/User" } } } } } }
+      }
+    },
+    "/api/upload.php": {
+      "post": {
+        "tags": ["Upload"],
+        "summary": "Kep feltoltese",
+        "security": [{ "BearerAuth": [] }, { "AdminSecret": [] }],
+        "requestBody": {
+          "content": { "multipart/form-data": { "schema": { "type": "object", "properties": { "image": { "type": "string", "format": "binary" } } } } }
+        },
+        "responses": { "200": { "description": "Kep feltoltve", "content": { "application/json": { "schema": { "type": "object", "properties": { "url": { "type": "string" } } } } } } }
+      }
+    }
+  }
+}
